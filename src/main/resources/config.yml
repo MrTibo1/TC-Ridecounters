@@ -1,0 +1,10 @@
+messages:
+  ridecount_update: "<gold>Your ridecount for <ride> is now <ridecount></reset>"
+  ride_no_access: "<#ff0000>You can't change anything about this ride because you don't own it"
+
+database:
+  type: sqlite
+  file: ridecounters.db
+
+  # MariaDB
+  connectionUrl: ""

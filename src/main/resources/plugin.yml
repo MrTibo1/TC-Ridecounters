@@ -1,0 +1,9 @@
+name: Ridecounters
+version: 'v1.0'
+main: be.mrtibo.ridecounters.Ridecounters
+api-version: '1.20'
+author: MrTibo
+description: Ridecounters made easy
+depend:
+  - Train_Carts
+  - BKCommonLib
