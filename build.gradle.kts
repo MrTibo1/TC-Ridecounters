@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "be.mrtibo"
-version = "2.0"
+version = "1.0"
 
 val javaVersion: JavaLanguageVersion = JavaLanguageVersion.of(17)
 
@@ -22,7 +22,7 @@ dependencies {
     compileOnly("io.papermc.paper:paper-api:1.20.4-R0.1-SNAPSHOT")
 
     compileOnly("com.bergerkiller.bukkit:TrainCarts:1.20.4-v2-SNAPSHOT")
-    compileOnly("com.bergerkiller.bukkit:TCCoasters:1.20.4-v2-SNAPSHOT")
+//    compileOnly("com.bergerkiller.bukkit:TCCoasters:1.20.4-v2-SNAPSHOT")
     compileOnly("com.bergerkiller.bukkit:BKCommonLib:1.20.4-v2-SNAPSHOT")
 
     implementation("cloud.commandframework", "cloud-paper", "1.8.4")
