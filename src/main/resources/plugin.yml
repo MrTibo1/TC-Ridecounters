@@ -1,5 +1,5 @@
 name: Ridecounters
-version: 'v1.0'
+version: '1.1'
 main: be.mrtibo.ridecounters.Ridecounters
 api-version: '1.20'
 author: MrTibo

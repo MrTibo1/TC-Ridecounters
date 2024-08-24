@@ -13,11 +13,11 @@ object DatabaseCommands {
         Ridecounters.manager.command(builder.literal("reconnect")
             .permission("ridecounters.database.reconnect")
             .handler { ctx ->
-                ctx.sender.sendMessage("<yellow>Attempting to reconnect database</yellow>".mini)
+                ctx.sender().sendMessage("<yellow>Attempting to reconnect database</yellow>".mini)
                 Ridecounters.INSTANCE.reloadConfig()
                 Database.connectAsync {
                     val message = if (it) "<green>☑☑☑ Database connected ☑☑☑</green>" else "<red>Something didn't go quite right. Check the console for more info!</red>"
-                    ctx.sender.sendMessage(message.mini)
+                    ctx.sender().sendMessage(message.mini)
                 }
             }
         )

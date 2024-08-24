@@ -6,11 +6,11 @@ import be.mrtibo.ridecounters.cache.OwnedRides
 import be.mrtibo.ridecounters.data.Database
 import be.mrtibo.ridecounters.data.Database.canAlterRide
 import be.mrtibo.ridecounters.utils.ComponentUtil.mini
-import cloud.commandframework.arguments.standard.IntegerArgument
-import cloud.commandframework.arguments.standard.StringArgument
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextColor
 import org.bukkit.entity.Player
+import org.incendo.cloud.parser.standard.IntegerParser
+import org.incendo.cloud.parser.standard.StringParser
 
 
 object RideCommands {
@@ -24,36 +24,36 @@ object RideCommands {
 
             manager.command(builder.literal("create")
                 .permission("ridecounters.ride.create")
-                .argument(StringArgument.of("ride name", StringArgument.StringMode.GREEDY))
+                .required("ride name", StringParser.greedyStringParser())
                 .senderType(Player::class.java)
                 .handler{ ctx ->
                     val rideName : String = ctx.get("ride name")
-                    Database.createRideAsync(rideName, (ctx.sender as Player).uniqueId) { msg, error ->
+                    Database.createRideAsync(rideName, ctx.sender().uniqueId) { msg, error ->
                         if(error == null && msg != null) {
-                            ctx.sender.sendMessage(msg.mini)
-                            OwnedRides.update(ctx.sender as Player)
+                            ctx.sender().sendMessage(msg.mini)
+                            OwnedRides.update(ctx.sender())
                             return@createRideAsync
                         }
-                        ctx.sender.sendMessage("<red>Something went wrong!</red><br><dark_red>$error".mini)
+                        ctx.sender().sendMessage("<red>Something went wrong!</red><br><dark_red>$error".mini)
                     }
                 }
             )
 
             .command(builder.literal("delete")
                 .permission("ridecounters.ride.delete")
-                .argument(IntegerArgument.of("ride id"))
+                .required("ride id", IntegerParser.integerParser())
                 .senderType(Player::class.java)
                 .handler { ctx ->
                     val rideId : Int = ctx.get("ride id")
-                    val p : Player = ctx.sender as Player
+                    val p : Player = ctx.sender()
                     p.canAlterRide(rideId) { _, alter ->
                         if(alter) {
                             Database.deleteRideAsync(rideId) {linesChanged ->
                                 if (linesChanged > 0){
-                                    ctx.sender.sendMessage("<red>Deleted ride <yellow>$rideId</yellow>.".mini)
+                                    ctx.sender().sendMessage("<red>Deleted ride <yellow>$rideId</yellow>.".mini)
                                     return@deleteRideAsync
                                 }
-                                ctx.sender.sendMessage("<red>Nothing changed.</red>".mini)
+                                ctx.sender().sendMessage("<red>Nothing changed.</red>".mini)
                             }
                         } else p.sendMessage(NO_ACCESS_MESSAGE)
 
@@ -66,25 +66,25 @@ object RideCommands {
                 .handler { ctx ->
                     Database.getAllRidesAsync { rides ->
                         if(rides.isEmpty()) {
-                            ctx.sender.sendMessage("<red>No rides registered.</red>".mini)
+                            ctx.sender().sendMessage("<red>No rides registered.</red>".mini)
                             return@getAllRidesAsync
                         }
                         var message = "<green>There are <yellow>${rides.size}</yellow> rides registered <gray>(id, name, owner)"
                         for (ride in rides) {
                             message += ("<br><yellow>${ride.id}</yellow> <gray>-</gray> <reset>${ride.name} <gray>-</gray> <reset><yellow>${ride.ownerName}</yellow>")
                         }
-                        ctx.sender.sendMessage(message.mini)
+                        ctx.sender().sendMessage(message.mini)
                     }
                 }
             )
 
             .command(builder.literal("name")
                 .permission("ridecounters.ride.setname")
-                .argument(IntegerArgument.of("ride id"))
-                .argument(StringArgument.of("new name", StringArgument.StringMode.GREEDY))
+                .required("ride id", IntegerParser.integerParser())
+                .required("new name", StringParser.greedyStringParser())
                 .senderType(Player::class.java)
                 .handler { ctx ->
-                    val p = ctx.sender as Player
+                    val p = ctx.sender()
                     val rideId : Int = ctx.get("ride id")
                     val newName : String = ctx.get("new name")
                     p.canAlterRide(rideId) {_, alter ->
@@ -100,20 +100,20 @@ object RideCommands {
 
             .command(builder.literal("displayname")
                 .permission("ridecounters.ride.setdisplayname")
-                .argument(IntegerArgument.of("ride id"))
-                .argument(StringArgument.of("displayname", StringArgument.StringMode.GREEDY))
+                .required("ride id", IntegerParser.integerParser())
+                .required("displayname", StringParser.greedyStringParser())
                 .senderType(Player::class.java)
                 .handler { ctx ->
                     val rideId : Int = ctx.get("ride id")
-                    val p : Player = ctx.sender as Player
+                    val p : Player = ctx.sender()
                     p.canAlterRide(rideId) { _, alter ->
                         if(alter) {
                             Database.setDisplayName(rideId, ctx.get("displayname")) { rowsChanged ->
                                 if(rowsChanged > 0) {
-                                    ctx.sender.sendMessage("<green>Display board name updated to ${ctx.get<String>("displayname")}".mini)
+                                    ctx.sender().sendMessage("<green>Display board name updated to ${ctx.get<String>("displayname")}".mini)
                                     return@setDisplayName
                                 }
-                                ctx.sender.sendMessage("<red>Something went wrong while updating the display board name</red>".mini)
+                                ctx.sender().sendMessage("<red>Something went wrong while updating the display board name</red>".mini)
                             }
                         } else p.sendMessage(NO_ACCESS_MESSAGE)
                     }

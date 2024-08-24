@@ -499,8 +499,10 @@ object Database {
                 val statement = con.prepareStatement("""
                     SELECT rides.id
                     FROM ridecounter_rides rides
-                    JOIN ridecounter_players ply ON rides.owningPlayer = ply.id;
+                    JOIN ridecounter_players ply ON rides.owningPlayer = ply.id
+                    WHERE owningPlayer = (SELECT id FROM ridecounter_players WHERE uuid = ?);
                 """.trimIndent())
+                statement.setString(1, player.uniqueId.toString())
 
                 try {
                     val result = statement.executeQuery()

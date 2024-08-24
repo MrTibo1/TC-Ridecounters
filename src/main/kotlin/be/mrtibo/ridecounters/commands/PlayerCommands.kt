@@ -13,9 +13,9 @@ object PlayerCommands {
         manager.command(
             manager.commandBuilder("ridecount")
                 .permission("ridecounter.ridecount")
+                .senderType(Player::class.java)
                 .handler{ ctx ->
-                    if(ctx.sender !is Player) return@handler
-                    val p = ctx.sender as Player
+                    val p = ctx.sender()
                     Database.getPlayerRidecounters(p) {
                         if(it.isNullOrEmpty()) {
                             p.sendMessage("<red>You haven't been on any rides yet!</red>".mini)

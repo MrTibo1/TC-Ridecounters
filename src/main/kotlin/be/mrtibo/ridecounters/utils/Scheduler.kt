@@ -6,7 +6,7 @@ import org.bukkit.Bukkit
 object Scheduler {
 
     fun sync(function: () -> Unit) {
-        Bukkit.getScheduler().runTask(INSTANCE, function)
+        Bukkit.getScheduler().getMainThreadExecutor(INSTANCE).execute(function)
     }
 
     fun async(function: () -> Unit) {

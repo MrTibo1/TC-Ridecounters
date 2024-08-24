@@ -1,12 +1,12 @@
 plugins {
     kotlin("jvm") version "1.9.21"
-    id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("com.gradleup.shadow") version "8.3.0"
 }
 
 group = "be.mrtibo"
-version = "1.0"
+version = "1.1"
 
-val javaVersion: JavaLanguageVersion = JavaLanguageVersion.of(17)
+val javaVersion: JavaLanguageVersion = JavaLanguageVersion.of(21)
 
 repositories {
     mavenCentral()
@@ -19,13 +19,15 @@ repositories {
 dependencies {
     implementation(kotlin("stdlib"))
 
-    compileOnly("io.papermc.paper:paper-api:1.20.4-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:1.21.1-R0.1-SNAPSHOT")
 
-    compileOnly("com.bergerkiller.bukkit:TrainCarts:1.20.4-v2-SNAPSHOT")
-//    compileOnly("com.bergerkiller.bukkit:TCCoasters:1.20.4-v2-SNAPSHOT")
-    compileOnly("com.bergerkiller.bukkit:BKCommonLib:1.20.4-v2-SNAPSHOT")
+    compileOnly("com.bergerkiller.bukkit:TrainCarts:1.21-v1-SNAPSHOT")
+    compileOnly("com.bergerkiller.bukkit:BKCommonLib:1.21-v1-SNAPSHOT")
 
-    implementation("cloud.commandframework", "cloud-paper", "1.8.4")
+//    implementation("cloud.commandframework", "cloud-paper", "1.8.4")
+    compileOnly("org.incendo:cloud-paper")
+    compileOnly("org.incendo:cloud-annotations")
+    compileOnly("org.incendo:cloud-minecraft-extras")
 
     implementation("com.zaxxer", "HikariCP", "5.1.0")
 
@@ -41,7 +43,11 @@ tasks {
     }
 
     shadowJar {
-
+        val commonPrefix = "com.bergerkiller.bukkit.common.dep"
+        relocate("org.incendo.cloud", "$commonPrefix.cloud")
+        relocate("io.leangen.geantyref", "$commonPrefix.typetoken")
+        relocate("me.lucko.commodore", "$commonPrefix.me.lucko.commodore")
+//        relocate("net.kyori", "$commonPrefix.net.kyori")
     }
 
 }

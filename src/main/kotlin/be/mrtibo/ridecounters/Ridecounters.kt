@@ -4,13 +4,11 @@ import be.mrtibo.ridecounters.commands.*
 import be.mrtibo.ridecounters.data.Database
 import be.mrtibo.ridecounters.events.JoinQuitEvent
 import be.mrtibo.ridecounters.traincarts.SignActionRidecount
-import cloud.commandframework.CommandTree
-import cloud.commandframework.execution.CommandExecutionCoordinator
-import cloud.commandframework.paper.PaperCommandManager
 import com.bergerkiller.bukkit.tc.signactions.SignAction
 import org.bukkit.command.CommandSender
 import org.bukkit.plugin.java.JavaPlugin
-import java.util.function.Function
+import org.incendo.cloud.execution.ExecutionCoordinator
+import org.incendo.cloud.paper.LegacyPaperCommandManager
 
 
 class Ridecounters : JavaPlugin() {
@@ -24,23 +22,7 @@ class Ridecounters : JavaPlugin() {
         /*
         Cloud
         */
-        val executionCoordinatorFunction : Function<CommandTree<CommandSender>, CommandExecutionCoordinator<CommandSender>> =
-            CommandExecutionCoordinator.simpleCoordinator();
-
-        val mapperFunction : Function<CommandSender, CommandSender> = Function.identity()
-        try {
-            manager = PaperCommandManager( /* Owning plugin */
-                this,  /* Coordinator function */
-                executionCoordinatorFunction,  /* Command Sender -> C */
-                mapperFunction,  /* C -> Command Sender */
-                mapperFunction
-            )
-        } catch (e: Exception) {
-            logger.severe("Failed to initialize the command this.manager")
-            /* Disable the plugin */
-            server.pluginManager.disablePlugin(this)
-            return
-        }
+        manager = LegacyPaperCommandManager.createNative(this, ExecutionCoordinator.simpleCoordinator())
 
         RideCommands
         CountCommands
@@ -93,7 +75,7 @@ class Ridecounters : JavaPlugin() {
     companion object {
 
         lateinit var INSTANCE: Ridecounters
-        lateinit var manager: PaperCommandManager<CommandSender>
+        lateinit var manager : LegacyPaperCommandManager<CommandSender>
 
     }
 
