@@ -49,27 +49,13 @@ class Ridecounters : JavaPlugin() {
         Events
          */
         JoinQuitEvent
-
-        /*
-        All done!
-         */
-        server.consoleSender.sendMessage("§e===================================")
-        server.consoleSender.sendMessage("§e       Ridecounters Plugin")
-        server.consoleSender.sendMessage("§a             Enabled")
-        server.consoleSender.sendMessage("§e===================================")
     }
 
     override fun onDisable() {
-
         /*
         Unregister TrainCarts sign
          */
         SignAction.unregister(signActionRidecount)
-
-        server.consoleSender.sendMessage("§e===================================")
-        server.consoleSender.sendMessage("§e       Ridecounters Plugin")
-        server.consoleSender.sendMessage("§c             Disabled")
-        server.consoleSender.sendMessage("§e===================================")
     }
 
     companion object {

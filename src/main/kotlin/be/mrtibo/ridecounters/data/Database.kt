@@ -33,7 +33,7 @@ object Database {
         val config = HikariConfig()
         val settings = INSTANCE.config
         if (settings.getString("database.type").equals("sqlite", true)) {
-            config.jdbcUrl = "jdbc:sqlite:${INSTANCE.dataFolder}\\${settings.getString("database.file")}"
+            config.jdbcUrl = "jdbc:sqlite:${INSTANCE.dataFolder}/data.db"
             isSqlite = true
             INSTANCE.logger.info("Using SQLite")
         } else {

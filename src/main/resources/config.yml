@@ -4,7 +4,6 @@ messages:
 
 database:
   type: sqlite
-  file: ridecounters.db
 
   # MariaDB
   connectionUrl: ""
