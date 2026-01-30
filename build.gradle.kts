@@ -1,6 +1,6 @@
 plugins {
-    kotlin("jvm") version "2.1.0"
-    id("com.gradleup.shadow") version "9.0.0"
+    kotlin("jvm") version "2.3.0"
+    id("com.gradleup.shadow") version "9.3.0"
 }
 
 group = "be.mrtibo"
@@ -19,10 +19,10 @@ repositories {
 dependencies {
     implementation(kotlin("stdlib"))
 
-    compileOnly("io.papermc.paper:paper-api:1.21.8-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
 
-    compileOnly("com.bergerkiller.bukkit:TrainCarts:1.21.8-v1-SNAPSHOT")
-    compileOnly("com.bergerkiller.bukkit:BKCommonLib:1.21.8-v1-SNAPSHOT")
+    compileOnly("com.bergerkiller.bukkit:TrainCarts:1.21.11-v1-SNAPSHOT")
+    compileOnly("com.bergerkiller.bukkit:BKCommonLib:1.21.11-v1-SNAPSHOT")
 
 //    implementation("cloud.commandframework", "cloud-paper", "1.8.4")
     compileOnly("org.incendo:cloud-paper")
@@ -37,11 +37,6 @@ tasks {
     assemble {
         dependsOn(shadowJar)
     }
-
-    compileKotlin {
-        kotlinOptions.jvmTarget = javaVersion.toString()
-    }
-
     shadowJar {
         val commonPrefix = "com.bergerkiller.bukkit.common.dep"
         relocate("org.incendo.cloud", "$commonPrefix.cloud")
