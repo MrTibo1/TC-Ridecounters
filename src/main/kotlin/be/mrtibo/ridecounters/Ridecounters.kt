@@ -2,13 +2,19 @@ package be.mrtibo.ridecounters
 
 import be.mrtibo.ridecounters.commands.*
 import be.mrtibo.ridecounters.data.Database
-import be.mrtibo.ridecounters.events.JoinQuitEvent
 import be.mrtibo.ridecounters.traincarts.SignActionRidecount
 import com.bergerkiller.bukkit.tc.signactions.SignAction
+import io.papermc.paper.command.brigadier.CommandSourceStack
 import org.bukkit.command.CommandSender
 import org.bukkit.plugin.java.JavaPlugin
+import org.incendo.cloud.annotations.AnnotationParser
+import org.incendo.cloud.brigadier.BrigadierSetting
+import org.incendo.cloud.brigadier.CloudBrigadierManager
 import org.incendo.cloud.execution.ExecutionCoordinator
-import org.incendo.cloud.paper.LegacyPaperCommandManager
+import org.incendo.cloud.paper.PaperCommandManager
+import org.incendo.cloud.paper.util.sender.PaperSimpleSenderMapper
+import org.incendo.cloud.paper.util.sender.Source
+import org.incendo.cloud.setting.Configurable
 
 
 class Ridecounters : JavaPlugin() {
@@ -22,13 +28,21 @@ class Ridecounters : JavaPlugin() {
         /*
         Cloud
         */
-        manager = LegacyPaperCommandManager.createNative(this, ExecutionCoordinator.simpleCoordinator())
+        commandManager = PaperCommandManager.builder(PaperSimpleSenderMapper.simpleSenderMapper())
+            .executionCoordinator(ExecutionCoordinator.simpleCoordinator<Source>())
+            .buildOnEnable(this)
 
-        RideCommands
-        CountCommands
-        PlayerCommands
-        DisplayCommands
-        DatabaseCommands
+        val brigadierManager: CloudBrigadierManager<in Source, out CommandSourceStack> = commandManager.brigadierManager()
+        val settings: Configurable<BrigadierSetting?> = brigadierManager.settings()
+        settings.set(BrigadierSetting.FORCE_EXECUTABLE, true)
+        val annotationParser: AnnotationParser<Source> = AnnotationParser(commandManager, Source::class.java)
+
+        annotationParser.parse(
+            CountCommands,
+            DisplayCommands,
+            PlayerCommands,
+            RideCommands
+        )
 
         /*
         Configuration
@@ -44,11 +58,6 @@ class Ridecounters : JavaPlugin() {
         Register TrainCarts sign
          */
         SignAction.register(signActionRidecount)
-
-        /*
-        Events
-         */
-        JoinQuitEvent
     }
 
     override fun onDisable() {
@@ -61,8 +70,7 @@ class Ridecounters : JavaPlugin() {
     companion object {
 
         lateinit var INSTANCE: Ridecounters
-        lateinit var manager : LegacyPaperCommandManager<CommandSender>
-
+        lateinit var commandManager : PaperCommandManager<Source>
     }
 
 }

@@ -1,21 +1,22 @@
 package be.mrtibo.ridecounters.commands
 
-import be.mrtibo.ridecounters.Ridecounters.Companion.manager
+import be.mrtibo.ridecounters.Ridecounters.Companion.commandManager
 import be.mrtibo.ridecounters.data.Database
 import be.mrtibo.ridecounters.data.RideCountEntry
 import be.mrtibo.ridecounters.utils.ComponentUtil.mini
 import org.bukkit.entity.Player
+import org.incendo.cloud.paper.util.sender.PlayerSource
 
 object PlayerCommands {
 
     init {
 
-        manager.command(
-            manager.commandBuilder("ridecount")
+        commandManager.command(
+            commandManager.commandBuilder("ridecount")
                 .permission("ridecounter.ridecount")
-                .senderType(Player::class.java)
+                .senderType(PlayerSource::class.java)
                 .handler{ ctx ->
-                    val p = ctx.sender()
+                    val p = ctx.sender().source()
                     Database.getPlayerRidecounters(p) {
                         if(it.isNullOrEmpty()) {
                             p.sendMessage("<red>You haven't been on any rides yet!</red>".mini)

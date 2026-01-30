@@ -1,7 +1,6 @@
 package be.mrtibo.ridecounters.traincarts
 
 import be.mrtibo.ridecounters.Ridecounters.Companion.INSTANCE
-import be.mrtibo.ridecounters.cache.OwnedRides
 import be.mrtibo.ridecounters.commands.RideCommands.NO_ACCESS_MESSAGE
 import be.mrtibo.ridecounters.data.Database
 import be.mrtibo.ridecounters.utils.ComponentUtil.mini
@@ -13,7 +12,6 @@ import com.bergerkiller.bukkit.tc.utils.SignBuildOptions
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.minimessage.MiniMessage
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder
-import org.bukkit.Material
 import org.bukkit.entity.Player
 
 class SignActionRidecount : SignAction() {
@@ -77,25 +75,20 @@ class SignActionRidecount : SignAction() {
         val type = when {
             info.isTrainSign -> "train"
             info.isCartSign -> "cart"
-            info.isRCSign -> "remote"
+            info.isRCSign -> "remote trains"
             else -> ""
         }
-        val rideId: Int
+
         try {
-            rideId = info.getLine(2).toInt()
+            info.getLine(2).toInt()
         } catch (_: NumberFormatException) {
             info.player.sendMessage("<red>You need to use the Ride ID on this sign".mini)
             return false
         }
 
-        if(!info.player.hasPermission("ridecounters.admin") && OwnedRides.map[info.player]?.contains(rideId) != true) {
-//            info.block.type = Material.AIR
-            info.player.sendMessage(NO_ACCESS_MESSAGE)
-            return false
-        }
-
         return SignBuildOptions.create()
             .setName("$type ridecounter sign")
+            .setPermission("ridecounters.traincarts")
             .setDescription("increment the ridecount of the players in the $type for the specified ride")
             .handle(info.player)
     }

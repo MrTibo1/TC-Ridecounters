@@ -28,6 +28,8 @@ dependencies {
     compileOnly("org.incendo:cloud-paper")
     compileOnly("org.incendo:cloud-annotations")
     compileOnly("org.incendo:cloud-minecraft-extras")
+//    implementation("org.incendo:cloud-kotlin-coroutines-annotations:2.0.0")
+//    implementation("org.incendo:cloud-kotlin-coroutines:2.0.0")
 
     implementation("com.zaxxer", "HikariCP", "7.0.2")
 
