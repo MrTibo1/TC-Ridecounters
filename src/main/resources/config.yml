@@ -1,9 +1,23 @@
 messages:
   ridecount_update: "<gold>Your ridecount for <ride> is now <ridecount></reset>"
-  ride_no_access: "<#ff0000>You can't change anything about this ride because you don't own it"
 
 database:
+  # Database type support
+  # File
+  # - sqlite
+  # Remote Database
+  # - mariadb
   type: sqlite
 
-  # MariaDB
-  connectionUrl: ""
+  # When using SQLite (Default)
+  # Data file name (plugins/TC-Ridecounters/{path})
+  path: "ridecounters_data.db"
+
+  # When using MariaDB
+  username: "username"
+  password: "password"
+  connectionTimeout: 10000
+  # jdbc:mariadb://[host]:[port]/[database name]
+  connectionUrl: "jdbc:mariadb://127.0.0.1:3306/ridecounters"
+
+check_for_updates: true

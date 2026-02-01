@@ -1,0 +1,15 @@
+name: "TC-Ridecounters"
+version: "2.0-SNAPSHOT"
+main: "be.mrtibo.ridecounters.Ridecounters"
+api-version: "1.21"
+authors:
+  - MrTibo
+
+dependencies:
+  server:
+    Train_Carts:
+      load: BEFORE
+      required: true
+    BKCommonLib:
+      load: BEFORE
+      required: true

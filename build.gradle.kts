@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "be.mrtibo"
-version = "1.2"
+version = "2.0-SNAPSHOT"
 
 val javaVersion: JavaLanguageVersion = JavaLanguageVersion.of(21)
 
@@ -24,14 +24,18 @@ dependencies {
     compileOnly("com.bergerkiller.bukkit:TrainCarts:1.21.11-v1-SNAPSHOT")
     compileOnly("com.bergerkiller.bukkit:BKCommonLib:1.21.11-v1-SNAPSHOT")
 
-//    implementation("cloud.commandframework", "cloud-paper", "1.8.4")
-    compileOnly("org.incendo:cloud-paper")
-    compileOnly("org.incendo:cloud-annotations")
-    compileOnly("org.incendo:cloud-minecraft-extras")
-//    implementation("org.incendo:cloud-kotlin-coroutines-annotations:2.0.0")
+    implementation("org.incendo:cloud-paper:2.0.0+")
+    implementation("org.incendo:cloud-annotations:2.0.0+")
+    implementation("org.incendo", "cloud-minecraft-extras", "2.0.0-beta.10")
+    implementation("org.incendo:cloud-kotlin-coroutines-annotations:2.0.0")
 //    implementation("org.incendo:cloud-kotlin-coroutines:2.0.0")
 
     implementation("com.zaxxer", "HikariCP", "7.0.2")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+
+    implementation("org.mariadb.jdbc:mariadb-java-client:3.5.7")
+    implementation("org.bstats:bstats-bukkit:3.1.0")
 
 }
 
@@ -40,8 +44,11 @@ tasks {
         dependsOn(shadowJar)
     }
     shadowJar {
+        relocate("kotlinx.coroutines", "be.mrtibo.lib.kotlinx.coroutines")
+        relocate("org.incendo.cloud", "be.mrtibo.lib.cloud")
+        relocate("org.bstats", "be.mrtibo.lib.bstats")
+
         val commonPrefix = "com.bergerkiller.bukkit.common.dep"
-        relocate("org.incendo.cloud", "$commonPrefix.cloud")
         relocate("io.leangen.geantyref", "$commonPrefix.typetoken")
         relocate("me.lucko.commodore", "$commonPrefix.me.lucko.commodore")
 //        relocate("net.kyori", "$commonPrefix.net.kyori")

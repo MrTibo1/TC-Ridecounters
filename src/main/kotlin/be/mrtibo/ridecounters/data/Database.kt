@@ -1,495 +1,314 @@
 package be.mrtibo.ridecounters.data
 
+import be.mrtibo.ridecounters.Ridecounters
 import be.mrtibo.ridecounters.Ridecounters.Companion.INSTANCE
-import be.mrtibo.ridecounters.utils.Scheduler.async
-import be.mrtibo.ridecounters.utils.Scheduler.sync
-import com.zaxxer.hikari.HikariConfig
-import com.zaxxer.hikari.HikariDataSource
-import com.zaxxer.hikari.pool.HikariPool.PoolInitializationException
-import org.bukkit.OfflinePlayer
+import be.mrtibo.ridecounters.data.records.PlayerRecord
+import be.mrtibo.ridecounters.data.records.RideRecord
+import be.mrtibo.ridecounters.data.records.RidecountTopRecord
+import be.mrtibo.ridecounters.data.records.RidecountTotalRecord
+import kotlinx.coroutines.withContext
 import org.bukkit.entity.Player
 import java.sql.Connection
 import java.sql.ResultSet
-import java.sql.SQLException
 import java.util.*
 
 object Database {
 
-    private lateinit var ds: HikariDataSource
-    private var isSqlite = false
+    private lateinit var connector: Connector
 
-    init {
-        connect()
+    val type
+        get() = connector.type
+
+    fun setupConnection() {
+        val type = INSTANCE.config.getString("database.type", "sqlite")
+        connector = when (type?.lowercase()?.trim()) {
+            "mariadb" -> MariaDBConnector()
+            "sqlite" -> SQLiteConnector()
+            else -> throw IllegalArgumentException("Unsupported database type '$type'")
+        }
+        connector.open()
     }
 
-    fun connectAsync(callback: (Boolean) -> Unit) {
-        async {
-            callback(connect())
-        }
-    }
-
-    private fun connect() : Boolean {
-
-        val config = HikariConfig()
-        val settings = INSTANCE.config
-        if (settings.getString("database.type").equals("sqlite", true)) {
-            config.jdbcUrl = "jdbc:sqlite:${INSTANCE.dataFolder}/ridecounters.db"
-            isSqlite = true
-            INSTANCE.logger.info("Using SQLite")
-        } else {
-            config.jdbcUrl = settings.getString("database.connectionUrl")
-            config.addDataSourceProperty("cachePrepStmts", "true");
-            config.addDataSourceProperty("prepStmtCacheSize", "250");
-            config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
-        }
-        config.connectionTestQuery = "SELECT 1"
-        config.connectionTimeout = 5000
-
+    fun shutdown() {
         try {
-            ds = HikariDataSource(config)
-            createTables()
-
-            INSTANCE.logger.info("Datasource initialized")
-            return true
-        } catch (e: PoolInitializationException) {
-            e.printStackTrace()
-            return false
-        }
+            connector.close()
+        } catch (_: Throwable) { }
     }
 
-    private fun getConnection(): Connection {
-        return ds.connection
-    }
-
-    private fun createTables() {
-        var query1 = """
-                    CREATE TABLE IF NOT EXISTS ridecounter_players (
-                    id INTEGER AUTO_INCREMENT,
-                    uuid CHAR(36) UNIQUE NOT NULL,
-                    lastName VARCHAR(24) NOT NULL,
-                    PRIMARY KEY (id)
-                    );
-                    """.trimIndent()
-        var query2 = """
-                    CREATE TABLE IF NOT EXISTS ridecounter_rides (
-                    id INTEGER AUTO_INCREMENT,
-                    name TEXT NOT NULL,
-                    owningPlayer INT,
-                    shortName TEXT,
-                    PRIMARY KEY (id),
-                    CONSTRAINT fk_ownerPlayer FOREIGN KEY (owningPlayer) REFERENCES ridecounter_players (id) ON UPDATE CASCADE ON DELETE CASCADE
-                    );
-                    """.trimIndent()
-        if (isSqlite) {
-            query1 = """
-                    CREATE TABLE IF NOT EXISTS ridecounter_players (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    uuid CHAR(36) UNIQUE NOT NULL,
-                    lastName VARCHAR(24) NOT NULL
-                    );
-                    """.trimIndent()
-            query2 = """
-                    CREATE TABLE IF NOT EXISTS ridecounter_rides (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT NOT NULL,
-                    owningPlayer INT,
-                    shortName TEXT,
-                    CONSTRAINT fk_ownerPlayer FOREIGN KEY (owningPlayer) REFERENCES ridecounter_players (id) ON UPDATE CASCADE ON DELETE CASCADE
-                    );
-                    """.trimIndent()
-        }
-        val query3 = """
-                    CREATE TABLE IF NOT EXISTS ridecounter_data (
-                    player INT NOT NULL,
-                    ride INT NOT NULL,
-                    val INT DEFAULT 0 NOT NULL,
-                    CONSTRAINT fk_ride FOREIGN KEY (ride) REFERENCES ridecounter_rides (id) ON UPDATE CASCADE ON DELETE CASCADE,
-                    CONSTRAINT fk_player FOREIGN KEY (player) REFERENCES ridecounter_players (id) ON UPDATE CASCADE ON DELETE CASCADE,
-                    PRIMARY KEY (player, ride)
-                    );
-                    """.trimIndent()
-        getConnection().use {con ->
-            val statement1 = con.prepareStatement(query1)
-            val statement2 = con.prepareStatement(query2)
-            val statement3 = con.prepareStatement(query3)
-            statement1.executeUpdate()
-            statement2.executeUpdate()
-            statement3.executeUpdate()
-        }
-        INSTANCE.logger.info("Initiated database tables")
-    }
-
-    fun createRideAsync(name: String, ownerUUID: UUID, callback: (String?, String?) -> Unit) {
-        async {
-            val query = "INSERT INTO ridecounter_rides (name, owningPlayer) VALUES (?, (SELECT id FROM ridecounter_players WHERE uuid = ?))"
-            getConnection().use { con ->
-                con.autoCommit = false
-                val statement = con.prepareStatement(query)
-                statement.setString(1, name)
-                statement.setString(2, ownerUUID.toString())
-                try {
-                    statement.executeUpdate()
-                    val rs = con.createStatement().executeQuery(if (isSqlite) "SELECT last_insert_rowid()" else "SELECT LAST_INSERT_ID();")
-                    rs.next()
-                    val id = rs.getInt(1)
-                    INSTANCE.logger.info("Added new ride $name to database with ID $id")
-                    sync { callback("<green>Added new ride $name <reset><green>to database with ID <yellow>$id", null) }
-                } catch (e: SQLException) {
-                    con.rollback()
-                    INSTANCE.logger.severe(e.message)
-                    sync { callback(null, e.message.toString()) }
-                }
-                con.commit()
+    fun createTables() {
+        val schemaPathName = "/schema/${connector.type.typeName}.sql"
+        this.javaClass.getResourceAsStream(schemaPathName).use { inputStream ->
+            if (inputStream == null) {
+                INSTANCE.logger.severe("No schema found at $schemaPathName")
+                return
             }
-        }
-    }
-
-    fun deleteRideAsync(rideId: Int, callback: (Int) -> Unit){
-        async {
-            val query = "DELETE FROM ridecounter_rides WHERE id = ?"
-            var result = 0
-
-            getConnection().use { con ->
-                val statement = con.prepareStatement(query)
-                statement.setInt(1, rideId)
-                try {
-                    result = statement.executeUpdate()
-                    INSTANCE.logger.info("Deleted ride $rideId from database")
-                } catch (e: SQLException) {
-                    INSTANCE.logger.severe("SQLException while deleting ride from database")
-                    INSTANCE.logger.severe(e.message)
-                }
-            }
-            sync { callback(result) }
-        }
-    }
-
-    fun incrementRideCounter(player: OfflinePlayer, rideId: Int, callback: (Boolean) -> Unit){
-        async {
-            getConnection().use {con ->
-                val statement = when {
-                    isSqlite -> con.prepareStatement("""
-                        INSERT INTO ridecounter_data (player, ride, val)
-                        VALUES ((SELECT id FROM ridecounter_players WHERE uuid = ?), ?, 1)
-                        ON CONFLICT(player, ride) DO UPDATE SET val = val + 1
-                    """.trimIndent())
-                    else -> con.prepareStatement(
-                        """
-                        INSERT INTO ridecounter_data (player, ride, val)
-                        VALUES ((SELECT id FROM ridecounter_players WHERE uuid = ?), ?, 1)
-                        ON DUPLICATE KEY UPDATE val = val + 1;
-                        """
-                    )
-                }
-
-                statement.setString(1, player.uniqueId.toString())
-                statement.setInt(2, rideId)
-
-                try {
-                    statement.executeUpdate()
-                    sync { callback(true) }
-                } catch (e: SQLException) {
-                    sync { callback(false) }
-                }
-            }
-        }
-
-    }
-
-    fun getRideCountAsync(player: Player, rideId: Int, callback: (RideCountEntry?) -> Unit) {
-        async {
-            getConnection().use { con ->
-                val statement = con.prepareStatement("""
-                        SELECT players.uuid, players.lastName, rides.name, data.val, rides.shortName
-                        FROM ridecounter_data data
-                        JOIN ridecounter_players players ON data.player = players.id
-                        JOIN ridecounter_rides rides ON data.ride = rides.id
-                        WHERE players.uuid = ? AND data.ride = ?;
-                        """
-                )
-                statement.setString(1, player.uniqueId.toString())
-                statement.setInt(2, rideId)
-
-                try {
-                    val result = statement.executeQuery()
-                    if (result.next()) {
-                        val ride = Ride(rideId, result.getString(3), result.getString(5))
-                        val entry = RideCountEntry(
-                            UUID.fromString(result.getString(1)),
-                            result.getString(2),
-                            ride,
-                            result.getInt(4)
-                        )
-                        sync { callback(entry) }
-                    }
-                } catch (e: SQLException) {
-                    sync { callback(null) }
-                }
-            }
-        }
-    }
-
-    fun getTopCountAsync(rideId: Int, limit: Int, callback: (List<RideCountEntry>?) -> Unit) {
-        async {
-            getConnection().use { con ->
-                val statement = con.prepareStatement("""
-                SELECT players.uuid, players.lastName, rides.name, data.val, rides.shortName
-                FROM ridecounter_data data
-                JOIN ridecounter_rides rides ON rides.id = data.ride
-                JOIN ridecounter_players players ON players.id = data.player
-                WHERE ride = ?
-                ORDER BY val DESC
-                LIMIT ?
-                """)
-                statement.setInt(1, rideId)
-                statement.setInt(2, limit)
-
-                try {
-                    val results = statement.executeQuery()
-                    val counts = mutableListOf<RideCountEntry>()
-                    while(results.next()) {
-                        counts.add(RideCountEntry(UUID.fromString(results.getString(1)), results.getString(2), Ride(rideId, results.getString(3), results.getString(5)), results.getInt(4)))
-                    }
-                    sync { callback(counts) }
-                } catch (e: SQLException) {
-                    sync {
-                        callback(null)
-                        e.printStackTrace()
+            val full = inputStream.bufferedReader().readLines()
+            val statements = mutableListOf<String>()
+            val sb = StringBuilder()
+            full.forEach { line ->
+                if (line.isNotBlank()) {
+                    sb.append(line)
+                    if (line.endsWith(");")) {
+                        statements.add(sb.toString())
+                        sb.clear()
                     }
                 }
             }
-        }
-    }
-
-    fun getAllRidesAsync(callback: (List<Ride>) -> Unit) {
-        async {
-
-            val query = """
-                SELECT rides.id, rides.name, players.uuid, players.lastName
-                FROM ridecounter_rides rides
-                LEFT JOIN ridecounter_players players ON players.id = rides.owningPlayer
-            """.trimIndent()
-            val list = mutableListOf<Ride>()
-
-            val results : ResultSet
-            getConnection().use { con ->
-                val statement = con.prepareStatement(query)
-                results = statement.executeQuery()
-                while(results.next()) {
-                    var uuid : UUID? = null
-                    try {
-                        uuid = UUID.fromString(results.getString(3))
-                    } catch (_: Exception) {}
-                    var ownerName : String? = "*Server"
-                    try {
-                        ownerName = results.getString(4)
-                    } catch (_: Exception) {}
-                    list.add(Ride(
-                        id = results.getInt(1),
-                        name = results.getString(2),
-                        displayName = null,
-                        owner = uuid,
-                        ownerName = ownerName))
-                }
-            }
-            sync { callback(list) }
-        }
-    }
-
-    fun rememberPlayer(player: Player) {
-        async {
-            getConnection().use {con ->
-                val query = when {
-                    isSqlite -> """
-                    INSERT INTO ridecounter_players (uuid, lastName)
-                    VALUES (?, ?)
-                    ON CONFLICT(uuid) DO UPDATE SET lastName = ?;
-                    """.trimIndent()
-
-                    else -> """
-                    INSERT INTO ridecounter_players (uuid, lastName)
-                    VALUES (?, ?)
-                    ON DUPLICATE KEY UPDATE lastName = ?;
-                    """.trimIndent()
-                }
-                val statement = con.prepareStatement(query)
-                statement.setString(1, player.uniqueId.toString())
-                statement.setString(2, player.name)
-                statement.setString(3, player.name)
-                statement.executeUpdate()
+            connection().use { connection ->
+                val stmt = connection.createStatement()
+                statements.forEach(stmt::addBatch)
+                stmt.executeBatch()
             }
         }
     }
 
-    fun getPlayerRidecounters(player: Player, callback: (List<RideCountEntry>?) -> Unit) {
-        async {
-            getConnection().use { con ->
-                val statement = con.prepareStatement("""
-                SELECT rides.id, rides.name, data.val
-                FROM ridecounter_data data
-                JOIN ridecounter_players players ON players.id = data.player
-                JOIN ridecounter_rides rides ON data.ride = rides.id
-                WHERE players.uuid = ?
-                ORDER BY data.val DESC
-            """)
+    private fun connection(): Connection = connector.getConnection()
 
-                statement.setString(1, player.uniqueId.toString())
-                try {
-                    val results = statement.executeQuery()
-                    val entries = mutableListOf<RideCountEntry>()
-                    while(results.next()) {
-                        entries.add(RideCountEntry(player.uniqueId, player.name, Ride(results.getInt(1), results.getString(2), null), results.getInt(3)))
-                    }
-                    sync {
-                        callback(entries)
-                    }
-                } catch (_: SQLException) {
-                    sync {
-                        callback(null)
-                    }
-                }
-            }
+    suspend fun createRide(id: String, name: String) = withContext(Ridecounters.asyncDispatcher) {
+        connection().use {
+            val stmt = it.prepareStatement("INSERT INTO rides (id, name) VALUES (?, ?)")
+            stmt.setString(1, id)
+            stmt.setString(2, name)
+            stmt.executeUpdate()
         }
     }
 
-    fun setName(rideId: Int, newName: String, callback: (Int) -> Unit){
-        async {
-            getConnection().use { con ->
-                val statement = con.prepareStatement("""
-                    UPDATE ridecounter_rides
-                    SET name = ?
-                    WHERE id = ?
-                """.trimIndent())
-                statement.setString(1, newName)
-                statement.setInt(2, rideId)
-                try {
-                    val result = statement.executeUpdate()
-                    sync { callback(result) }
-                } catch (e: SQLException) {
-                    sync { callback(0)}
-                    e.printStackTrace()
-                }
-            }
+    suspend fun deleteRide(id: String): Boolean = withContext(Ridecounters.asyncDispatcher) {
+        connection().use {
+            val stmt = it.prepareStatement("DELETE FROM rides WHERE id = ?")
+            stmt.setString(1, id)
+            val num = stmt.executeUpdate()
+            return@withContext num > 0
         }
     }
 
-    fun setDisplayName(rideId: Int, name: String, callback: (Int) -> Unit) {
-        async {
-            getConnection().use { con ->
-                val statement = con.prepareStatement(
-                """
-                UPDATE ridecounter_rides
-                SET shortName = ?
-                WHERE id = ?
+    suspend fun setCounter(uuid: String, rideId: String, value: Int): RidecountTotalRecord? = withContext(Ridecounters.asyncDispatcher) {
+        connection().use {
+            val setStatement = when (connector.type) {
+                DBType.MARIADB -> """
+                    INSERT INTO ridecount_total (ride_id, player_uuid, total)
+                    VALUES (?, ?, ?)
+                    ON DUPLICATE KEY UPDATE total = ?
                 """.trimIndent()
-                )
-                statement.setString(1, name)
-                statement.setInt(2, rideId)
-                try {
-                    val result = statement.executeUpdate()
-                    sync {
-                        callback(result)
-                    }
-                } catch (e: SQLException) {
-                    sync {
-                        callback(0)
-                    }
-                    e.printStackTrace()
-                }
-            }
-        }
-    }
-
-    fun setRidecount(rideId: Int, player: OfflinePlayer, newValue: Int, callback: (Int) -> Unit) {
-        async {
-            getConnection().use {con ->
-                val statement = con.prepareStatement("""
-                    UPDATE ridecounter_data
-                    SET val = ?
-                    WHERE ride = ? AND player = (SELECT id FROM ridecounter_players WHERE uuid = ?)
-                """.trimIndent())
-                statement.setInt(1, newValue)
-                statement.setInt(2, rideId)
-                statement.setString(3, player.uniqueId.toString())
-                try {
-                    val result = statement.executeUpdate()
-                    sync { callback(result) }
-                } catch (e: SQLException) {
-                    sync { callback(0) }
-                    e.printStackTrace()
-                }
-            }
-        }
-    }
-
-    fun clearRidedata(rideId: Int, callback: (Int) -> Unit) {
-        async {
-            getConnection().use {con ->
-                val statement = con.prepareStatement("""
-                    DELETE FROM ridecounter_data
-                    WHERE ride = ?
-                """.trimIndent())
-                statement.setInt(1, rideId)
-                try {
-                    val result = statement.executeUpdate()
-                    sync { callback(result) }
-                } catch (e: SQLException) {
-                    e.printStackTrace()
-                    sync { callback(0) }
-                }
-            }
-        }
-    }
-
-    fun clearRidecount(rideId: Int, player: OfflinePlayer, callback: (Int) -> Unit) {
-        async {
-            getConnection().use { con ->
-                val statement = con.prepareStatement("""
-                    DELETE FROM ridecounter_data
-                    WHERE ride = ? AND player = (SELECT id FROM ridecounter_players WHERE uuid = ?)
-                """.trimIndent())
-                statement.apply {
-                    setInt(1, rideId)
-                    setString(2, player.uniqueId.toString())
-                }
-                try {
-                    val result = statement.executeUpdate()
-                    sync { callback(result) }
-                } catch (e: SQLException) {
-                    e.printStackTrace()
-                    sync { callback(0) }
-                }
-            }
-        }
-    }
-
-    fun getRide(rideId : Int) : Ride? {
-        getConnection().use { con ->
-            val statement = con.prepareStatement(
-                """
-                    SELECT rides.id, rides.name, rides.shortName, players.uuid
-                    FROM ridecounter_rides rides
-                    LEFT JOIN ridecounter_players players ON players.id = rides.owningPlayer
-                    WHERE rides.id = ?
+                DBType.SQLITE -> """
+                    INSERT INTO ridecount_total (ride_id, player_uuid, total)
+                    VALUES (?, ?, ?)
+                    ON CONFLICT DO UPDATE SET total = ?
                 """.trimIndent()
+            }
+            val stmt = it.prepareStatement(setStatement)
+            stmt.setString(1, rideId)
+            stmt.setString(2, uuid)
+            stmt.setInt(3, value)
+            stmt.setInt(4, value)
+
+            stmt.executeUpdate()
+        }
+        return@withContext getTotalRidecount(uuid, rideId)
+    }
+
+    suspend fun incrementCounter(uuid: String, rideId: String): RidecountTotalRecord? = withContext(Ridecounters.asyncDispatcher) {
+        connection().use {
+            it.autoCommit = false
+            val incrementStatement = when (connector.type) {
+                DBType.MARIADB -> """
+                    INSERT INTO ridecount_total (ride_id, player_uuid)
+                    VALUES (?, ?)
+                    ON DUPLICATE KEY UPDATE total = total + 1
+                """.trimIndent()
+
+                DBType.SQLITE -> """
+                    INSERT INTO ridecount_total (ride_id, player_uuid)
+                    VALUES (?, ?)
+                    ON CONFLICT DO UPDATE SET total = total + 1
+                """.trimIndent()
+            }
+            val totalStmt = it.prepareStatement(incrementStatement)
+            totalStmt.setString(1, rideId)
+            totalStmt.setString(2, uuid)
+            totalStmt.executeUpdate()
+
+            val dataStmt = it.prepareStatement("""
+                INSERT INTO ridecount_data (ride_id, player_uuid)
+                VALUES (?, ?)
+            """.trimIndent())
+            dataStmt.setString(1, rideId)
+            dataStmt.setString(2, uuid)
+            dataStmt.executeUpdate()
+
+            it.commit()
+
+        }
+        return@withContext getTotalRidecount(uuid, rideId)
+    }
+
+    suspend fun getTotalRidecount(uuid: String, rideId: String): RidecountTotalRecord? = withContext(Ridecounters.asyncDispatcher) {
+        val record: RidecountTotalRecord
+        connection().use {
+            val stmt = it.prepareStatement("""
+                SELECT
+                    r.id as ride_id,
+                    r.name as ride_name,
+                    r.altname as ride_altname,
+                    p.uuid as player_uuid,
+                    p.username as player_username,
+                    p.hidden as player_hidden,
+                    t.total as total
+                FROM ridecount_total t
+                JOIN rides r ON t.ride_id = r.id
+                JOIN players p ON t.player_uuid = p.uuid
+                WHERE t.player_uuid = ? AND t.ride_id = ?
+                LIMIT 1
+            """.trimIndent())
+            stmt.setString(1, uuid)
+            stmt.setString(2, rideId)
+            val resultSet = stmt.executeQuery()
+            if (!resultSet.next()) {
+                return@withContext null
+            }
+            val ride = mapRide(resultSet) ?: return@withContext null
+            val player = mapPlayer(resultSet) ?: return@withContext null
+            val total = resultSet.getInt("total")
+            record = RidecountTotalRecord(
+                player, ride, total
             )
-            statement.setInt(1, rideId)
-            try {
-                val result = statement.executeQuery()
-                if(!result.next()) return null
-                var uuid: UUID? = null
-                try {
-                    uuid = UUID.fromString(result.getString(4))
-                } catch (_: Exception) {}
-                return Ride(
-                    result.getInt(1),
-                    result.getString(2),
-                    result.getString(3),
-                    uuid
+        }
+        return@withContext record
+    }
+
+    suspend fun getTopTotalRidecounter(rideId: String, limit: Int): RidecountTopRecord? = withContext(Ridecounters.asyncDispatcher) {
+        val ride: RideRecord
+        val data = mutableListOf<RidecountTotalRecord>()
+        connection().use {
+            val rideStmt = it.prepareStatement("SELECT id as ride_id, name as ride_name, altname as ride_altname FROM rides WHERE id = ?")
+            rideStmt.setString(1, rideId)
+            val rideResult = rideStmt.executeQuery()
+            if (!rideResult.next()) {
+                return@withContext null
+            }
+            ride = mapRide(rideResult) ?: return@withContext null
+            val stmt = it.prepareStatement(
+                """
+                SELECT
+                    p.uuid as player_uuid,
+                    p.username as player_username,
+                    p.hidden as player_hidden,
+                    t.total as total
+                FROM ridecount_total t
+                JOIN players p ON p.uuid = t.player_uuid
+                WHERE t.ride_id = ? AND p.hidden = false
+                ORDER BY t.total DESC
+                LIMIT ?
+                """.trimMargin()
+            )
+            stmt.setString(1, rideId)
+            stmt.setInt(2, limit)
+            val resultSet = stmt.executeQuery()
+            while (resultSet.next()) {
+                val player = mapPlayer(resultSet) ?: continue
+                data.add(
+                    RidecountTotalRecord(
+                        player,
+                        ride,
+                        resultSet.getInt("total")
+                    )
                 )
-            } catch (e: SQLException) {
-                return null
             }
         }
+        return@withContext RidecountTopRecord(ride, data.toSet())
+    }
+
+    suspend fun savePlayer(player: Player) = withContext(Ridecounters.asyncDispatcher) {
+        connection().use {
+            val saveStmt = when (connector.type) {
+                DBType.MARIADB -> "INSERT INTO players (uuid, username) VALUES (?, ?) ON DUPLICATE KEY UPDATE username = ?"
+                DBType.SQLITE -> "INSERT INTO players (uuid, username) VALUES (?, ?) ON CONFLICT DO UPDATE SET username = ?"
+            }
+            val stmt = it.prepareStatement(saveStmt)
+            stmt.setString(1, player.uniqueId.toString())
+            stmt.setString(2, player.name)
+            stmt.setString(3, player.name)
+            stmt.executeUpdate()
+        }
+    }
+
+    suspend fun getRides(idMatching: String): List<RideRecord> = withContext(Ridecounters.asyncDispatcher) {
+        val list = mutableListOf<RideRecord>()
+        connection().use {
+            val stmt = it.prepareStatement("""SELECT id as ride_id, name as ride_name, altname as ride_altname FROM rides WHERE id LIKE ? LIMIT 20""")
+            stmt.setString(1, "%$idMatching%")
+            val results = stmt.executeQuery()
+            while (results.next()) {
+                list.add(
+                    mapRide(results) ?: continue
+                )
+            }
+        }
+        return@withContext list
+    }
+
+    suspend fun getRides(limit: Int, offset: Int): List<RideRecord> = withContext(Ridecounters.asyncDispatcher) {
+        val list = mutableListOf<RideRecord>()
+        connection().use {
+            val stmt = it.prepareStatement("SELECT id as ride_id, name as ride_name, altname as ride_altname FROM rides LIMIT ? OFFSET ?")
+            stmt.setInt(1, limit)
+            stmt.setInt(2, offset)
+            val results = stmt.executeQuery()
+            while (results.next()) {
+                list.add(
+                    mapRide(results) ?: continue
+                )
+            }
+        }
+        return@withContext list.toList()
+    }
+
+    suspend fun getRide(rideId : String) : RideRecord? = withContext(Ridecounters.asyncDispatcher) {
+        val ride: RideRecord?
+        connection().use {
+            val stmt = it.prepareStatement("SELECT id as ride_id, name as ride_name, altname as ride_altname FROM rides WHERE id = ?")
+            stmt.setString(1, rideId)
+            val resultSet = stmt.executeQuery()
+            ride = if (resultSet.next()) { mapRide(resultSet) } else null
+        }
+        return@withContext ride
+    }
+
+    suspend fun changeName(rideId: String, name: String) = withContext(Ridecounters.asyncDispatcher) {
+        connection().use {
+            val stmt = it.prepareStatement("UPDATE rides SET name = ? WHERE id = ?")
+            stmt.setString(1, name)
+            stmt.setString(2, rideId)
+            return@withContext stmt.executeUpdate() > 0
+        }
+    }
+
+    suspend fun changeAltName(rideId: String, name: String) = withContext(Ridecounters.asyncDispatcher) {
+        connection().use {
+            val stmt = it.prepareStatement("UPDATE rides SET altname = ? WHERE id = ?")
+            stmt.setString(1, name)
+            stmt.setString(2, rideId)
+            return@withContext stmt.executeUpdate() > 0
+        }
+    }
+
+    private fun mapPlayer(resultSet: ResultSet): PlayerRecord? {
+        return try {
+            PlayerRecord(
+                UUID.fromString(resultSet.getString("player_uuid")),
+                resultSet.getString("player_username"),
+                resultSet.getBoolean("player_hidden")
+            )
+        } catch (_: Exception) { null }
+    }
+
+    private fun mapRide(resultSet: ResultSet): RideRecord? {
+        return try {
+            RideRecord(
+                resultSet.getString("ride_id"),
+                resultSet.getString("ride_name"),
+                resultSet.runCatching { getString("ride_altname") }.getOrNull()
+            )
+        } catch (_: Exception) { null }
     }
 }

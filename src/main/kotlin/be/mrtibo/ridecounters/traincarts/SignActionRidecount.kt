@@ -1,14 +1,18 @@
 package be.mrtibo.ridecounters.traincarts
 
+import be.mrtibo.ridecounters.Ridecounters
 import be.mrtibo.ridecounters.Ridecounters.Companion.INSTANCE
-import be.mrtibo.ridecounters.commands.RideCommands.NO_ACCESS_MESSAGE
 import be.mrtibo.ridecounters.data.Database
 import be.mrtibo.ridecounters.utils.ComponentUtil.mini
+import com.bergerkiller.bukkit.tc.controller.MinecartGroup
+import com.bergerkiller.bukkit.tc.controller.MinecartMember
 import com.bergerkiller.bukkit.tc.events.SignActionEvent
 import com.bergerkiller.bukkit.tc.events.SignChangeActionEvent
 import com.bergerkiller.bukkit.tc.signactions.SignAction
 import com.bergerkiller.bukkit.tc.signactions.SignActionType
 import com.bergerkiller.bukkit.tc.utils.SignBuildOptions
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.minimessage.MiniMessage
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder
@@ -21,52 +25,35 @@ class SignActionRidecount : SignAction() {
     }
 
     override fun execute(info: SignActionEvent) {
-        val rideId: Int
-        try {
-            rideId = info.getLine(2).toInt()
-        } catch (e: NumberFormatException) {
-            return
-        }
+        val rideId = info.getLine(2) + info.getLine(3)
+        if (rideId.isEmpty()) return
+
         if(info.isTrainSign && info.isAction(SignActionType.REDSTONE_ON, SignActionType.GROUP_ENTER) && info.isPowered && info.hasGroup()){
-            for (member in info.members) {
-                for (player in member.entity.playerPassengers) {
-                    incrementCount(player, rideId)
-                }
-            }
+            handleGroup(info.group, rideId)
         } else if (info.isCartSign && info.isAction(SignActionType.REDSTONE_ON, SignActionType.MEMBER_ENTER) && info.isPowered && info.hasMember()) {
-            if (info.hasGroup()) {
-                for (member in info.members) {
-                    for (player in member.entity.playerPassengers) {
-                        incrementCount(player, rideId)
-                    }
-                }
-            } else if (info.hasMember()) {
-                for (player in info.member.entity.playerPassengers) {
-                    incrementCount(player, rideId)
-                }
-            }
+            handleMember(info.member, rideId)
         } else if (info.isRCSign && info.isAction(SignActionType.REDSTONE_ON) && info.isPowered) {
-            for (trainGroup in info.rcTrainGroups) {
-                for (member in trainGroup) {
-                    for (player in member.entity.playerPassengers) {
-                        incrementCount(player, rideId)
-                    }
-                }
-            }
+            info.rcTrainGroups.forEach { handleGroup(it, rideId) }
         }
     }
 
-    private fun incrementCount(player: Player, rideId: Int){
-        Database.incrementRideCounter(player, rideId) {success ->
-            if(success) {
-                Database.getRideCountAsync(player, rideId) {
-                    it ?: return@getRideCountAsync
-                    val message = MiniMessage.miniMessage().deserialize(INSTANCE.config.getString("messages.ridecount_update")!!,
-                        Placeholder.component("ridecount", Component.text(it.count)),
-                        Placeholder.component("ride", it.ride.name.mini))
-                    player.sendMessage(message)
-                }
-                return@incrementRideCounter
+    private fun handleGroup(group: MinecartGroup, rideId: String) {
+        group.forEach { handleMember(it, rideId) }
+    }
+
+    private fun handleMember(member: MinecartMember<*>, rideId: String) {
+        member.entity.playerPassengers.forEach { incrementCount(it, rideId) }
+    }
+
+    private fun incrementCount(player: Player, rideId: String) {
+        INSTANCE.launch {
+            val ride = Database.getRide(rideId) ?: return@launch
+            val newCount = Database.incrementCounter(player.uniqueId.toString(), rideId) ?: return@launch
+            withContext(Ridecounters.mainThreadDispatcher) {
+                val message = MiniMessage.miniMessage().deserialize(INSTANCE.config.getString("messages.ridecount_update")!!,
+                    Placeholder.component("ridecount", Component.text(newCount.total)),
+                    Placeholder.component("ride", ride.name.mini))
+                player.sendMessage(message)
             }
         }
     }
@@ -77,13 +64,6 @@ class SignActionRidecount : SignAction() {
             info.isCartSign -> "cart"
             info.isRCSign -> "remote trains"
             else -> ""
-        }
-
-        try {
-            info.getLine(2).toInt()
-        } catch (_: NumberFormatException) {
-            info.player.sendMessage("<red>You need to use the Ride ID on this sign".mini)
-            return false
         }
 
         return SignBuildOptions.create()
