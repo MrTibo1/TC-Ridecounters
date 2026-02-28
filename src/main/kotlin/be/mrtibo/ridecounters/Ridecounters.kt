@@ -7,6 +7,7 @@ import be.mrtibo.ridecounters.commands.suggestions.RideSuggestions
 import be.mrtibo.ridecounters.concurrency.AsyncDispatcher
 import be.mrtibo.ridecounters.concurrency.MainThreadDispatcher
 import be.mrtibo.ridecounters.data.Database
+import be.mrtibo.ridecounters.data.DatabaseUpgrader
 import be.mrtibo.ridecounters.events.JoinEvent
 import be.mrtibo.ridecounters.traincarts.SignActionRidecount
 import be.mrtibo.ridecounters.update.UpdateChecker
@@ -73,8 +74,10 @@ class Ridecounters : JavaPlugin(), CoroutineScope {
         Database
          */
         try {
+            DatabaseUpgrader.copySqliteDB()
             Database.setupConnection()
             Database.createTables()
+            DatabaseUpgrader.attemptUpgrade()
         } catch (e: Exception) {
             e.printStackTrace()
         }

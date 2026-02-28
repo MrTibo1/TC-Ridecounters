@@ -63,7 +63,7 @@ object Database {
         }
     }
 
-    private fun connection(): Connection = connector.getConnection()
+    internal fun connection(): Connection = connector.getConnection()
 
     suspend fun createRide(id: String, name: String) = withContext(Ridecounters.asyncDispatcher) {
         connection().use {
