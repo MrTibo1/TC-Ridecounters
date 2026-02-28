@@ -4,6 +4,10 @@ main: "be.mrtibo.ridecounters.Ridecounters"
 api-version: "1.21"
 authors:
   - MrTibo
+contributors:
+  - Thojs
+
+website: "https://github.com/MrTibo1/TC-Ridecounters"
 
 dependencies:
   server:
