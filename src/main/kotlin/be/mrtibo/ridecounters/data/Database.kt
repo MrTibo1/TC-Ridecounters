@@ -24,6 +24,7 @@ object Database {
         connector = when (type?.lowercase()?.trim()) {
             "mariadb" -> MariaDBConnector()
             "sqlite" -> SQLiteConnector()
+            "mysql" -> MySQLConnector()
             else -> throw IllegalArgumentException("Unsupported database type '$type'")
         }
         connector.open()
@@ -62,7 +63,7 @@ object Database {
         }
     }
 
-    private fun connection(): Connection = connector.getConnection()
+    internal fun connection(): Connection = connector.getConnection()
 
     suspend fun createRide(id: String, name: String) = withContext(Ridecounters.asyncDispatcher) {
         connection().use {
