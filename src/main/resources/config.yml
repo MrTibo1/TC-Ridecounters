@@ -7,17 +7,18 @@ database:
   # - sqlite
   # Remote Database
   # - mariadb
+  # - mysql
   type: sqlite
 
   # When using SQLite (Default)
   # Data file name (plugins/TC-Ridecounters/{path})
   path: "ridecounters_data.db"
 
-  # When using MariaDB
+  # When using MariaDB or MySQL
   username: "username"
   password: "password"
   connectionTimeout: 10000
-  # jdbc:mariadb://[host]:[port]/[database name]
+  # jdbc:[mariadb|mysql]://[host]:[port]/[database name]
   connectionUrl: "jdbc:mariadb://127.0.0.1:3306/ridecounters"
 
 check_for_updates: true

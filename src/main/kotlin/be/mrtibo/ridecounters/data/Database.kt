@@ -24,6 +24,7 @@ object Database {
         connector = when (type?.lowercase()?.trim()) {
             "mariadb" -> MariaDBConnector()
             "sqlite" -> SQLiteConnector()
+            "mysql" -> MySQLConnector()
             else -> throw IllegalArgumentException("Unsupported database type '$type'")
         }
         connector.open()
