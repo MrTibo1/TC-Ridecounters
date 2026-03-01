@@ -7,6 +7,7 @@ import com.google.gson.JsonElement
 import java.lang.reflect.Type
 
 object NineSliceBorderDeserializer : JsonDeserializer<NineSliceBorder> {
+
     override fun deserialize(
         json: JsonElement,
         typeOfT: Type,
@@ -19,4 +20,5 @@ object NineSliceBorderDeserializer : JsonDeserializer<NineSliceBorder> {
             NineSliceBorder(border, border, border, border)
         } else null
     }
+
 }

@@ -12,6 +12,7 @@ data class NineSliceTexture(
     val shouldStretch: Boolean = false,
     val border: NineSliceBorder
 ) : Texture {
+
     override fun applyMap(texture: MapTexture, canvas: MapCanvas) {
         val texture = MapTexture.resize(texture, width, height)
 
@@ -70,6 +71,7 @@ data class NineSliceTexture(
             }
         }
     }
+
 }
 
 data class NineSliceBorder(

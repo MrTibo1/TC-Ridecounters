@@ -7,6 +7,7 @@ data class TileTexture(
     val width: Int,
     val height: Int
 ) : Texture {
+
     override fun applyMap(texture: MapTexture, canvas: MapCanvas) {
         val img = MapTexture.resize(texture, width, height)
         for (x in 0 .. canvas.width/width) {
@@ -15,4 +16,5 @@ data class TileTexture(
             }
         }
     }
+
 }
