@@ -24,3 +24,7 @@ rc
 
 ## Contributors:
 - [@Thojs](https://github.com/thojs)
+
+## bStats
+TC-Ridecounters is tracked on [bStats](https://bstats.org/plugin/bukkit/TC-Ridecounters/29184)  
+You can disable this in the bStats config  
