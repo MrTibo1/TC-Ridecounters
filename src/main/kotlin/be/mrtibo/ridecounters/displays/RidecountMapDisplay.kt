@@ -13,6 +13,7 @@ import org.bukkit.Bukkit
 import javax.imageio.ImageIO
 
 private const val ENTRY_SPACING = 23
+private const val ENTRIES_PADDING = 34
 
 class RidecountMapDisplay : MapDisplay(), RidecountLeaderboard {
 
@@ -58,7 +59,7 @@ class RidecountMapDisplay : MapDisplay(), RidecountLeaderboard {
     override fun updateLeaderboard() {
         if (ride == null) return
 
-        val limit = ((height-34)/ENTRY_SPACING.toFloat()).toInt()
+        val limit = (height - ENTRIES_PADDING) / ENTRY_SPACING
 
         topLayer.alignment = MapFont.Alignment.MIDDLE
         topLayer.draw(MapFont.MINECRAFT, hCenter, 15, MapColorPalette.COLOR_BLACK, "Top $limit Riders")
