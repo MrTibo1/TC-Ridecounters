@@ -10,7 +10,6 @@ import com.bergerkiller.bukkit.common.map.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.bukkit.Bukkit
-import java.awt.Point
 import javax.imageio.ImageIO
 
 private const val ENTRY_SPACING = 23
@@ -34,11 +33,8 @@ class RidecountMapDisplay : MapDisplay(), RidecountLeaderboard {
             val texture = if (metaFile.exists()) McMetaDeserializer.deserialize(metaFile) else StretchTexture()
             texture.applyMap(image, bottomLayer)
         } catch (_: Exception) {
-            bottomLayer.fill(MapColorPalette.COLOR_WHITE)
-            bottomLayer.drawContour(
-                listOf(Point(0,0), Point(width-1, 0), Point(width-1, height-1), Point(0, height-1)),
-                MapColorPalette.COLOR_ORANGE
-            )
+            bottomLayer.fill(MapColorPalette.COLOR_ORANGE)
+            bottomLayer.fillRectangle(3, 3, width-6, height-6, MapColorPalette.COLOR_WHITE)
         }
         counterLayer = topLayer.next()
 
