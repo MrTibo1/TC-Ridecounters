@@ -10,7 +10,14 @@ Main command: `/ridecounter`
 
 ## Features
 1. Display top ridecounters on map displays  
-2. Dynamic and flexible custom backgrounds for map displays ([.mcmeta format](https://minecraft.wiki/w/Resource_pack#GUI) for tiling, stretching or nine-slice)  
+2. Dynamic and flexible custom backgrounds for map displays ([.mcmeta format](https://minecraft.wiki/w/Resource_pack#GUI) for tiling, stretching or nine-slice)
+3. TrainCarts signaction to increase the ridecount of every player in a train
+
+```
+[+train]
+rc
+<ride id>
+```
 
 ## Images
 <img width="600" alt="image" src="https://github.com/user-attachments/assets/aba98bf4-d78f-4532-b084-a4cb2e449eeb" />
