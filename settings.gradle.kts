@@ -1,1 +1,1 @@
-rootProject.name = "Ridecounters"
+rootProject.name = "TC-Ridecounters"

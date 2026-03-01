@@ -10,8 +10,10 @@ import com.bergerkiller.bukkit.common.map.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.bukkit.Bukkit
-import java.awt.Point
 import javax.imageio.ImageIO
+
+private const val ENTRY_SPACING = 23
+private const val ENTRIES_PADDING = 34
 
 class RidecountMapDisplay : MapDisplay(), RidecountLeaderboard {
 
@@ -32,11 +34,8 @@ class RidecountMapDisplay : MapDisplay(), RidecountLeaderboard {
             val texture = if (metaFile.exists()) McMetaDeserializer.deserialize(metaFile) else StretchTexture()
             texture.applyMap(image, bottomLayer)
         } catch (_: Exception) {
-            bottomLayer.fill(MapColorPalette.COLOR_WHITE)
-            bottomLayer.drawContour(
-                listOf(Point(0,0), Point(width-1, 0), Point(width-1, height-1), Point(0, height-1)),
-                MapColorPalette.COLOR_ORANGE
-            )
+            bottomLayer.fill(MapColorPalette.COLOR_ORANGE)
+            bottomLayer.fillRectangle(3, 3, width-6, height-6, MapColorPalette.COLOR_WHITE)
         }
         counterLayer = topLayer.next()
 
@@ -59,10 +58,9 @@ class RidecountMapDisplay : MapDisplay(), RidecountLeaderboard {
 
     override fun updateLeaderboard() {
         if (ride == null) return
-        val limit = when {
-            height == 128 -> 4
-            else -> height/128*4+2
-        }
+
+        val limit = (height - ENTRIES_PADDING) / ENTRY_SPACING
+
         topLayer.alignment = MapFont.Alignment.MIDDLE
         topLayer.draw(MapFont.MINECRAFT, hCenter, 15, MapColorPalette.COLOR_BLACK, "Top $limit Riders")
         INSTANCE.launch {
@@ -79,16 +77,16 @@ class RidecountMapDisplay : MapDisplay(), RidecountLeaderboard {
                         return@withContext
                     }
 
-                    val spacing = 23
                     for ((i, count) in top.data.withIndex()) {
                         counterLayer.alignment = MapFont.Alignment.MIDDLE
-                        counterLayer.draw(MapFont.MINECRAFT, hCenter, 28 + i*spacing, MapColorPalette.COLOR_BLACK, "#${i+1} ${count.player.username} ")
-                        counterLayer.draw(MapFont.MINECRAFT, hCenter, 37 + i*spacing, MapColorPalette.COLOR_BLACK, count.total.toString())
-                        if (i > 0) counterLayer.drawLine(hCenter-25, 24+i*spacing, hCenter+25, 24+i*spacing, MapColorPalette.getColor(150,150,150))
+                        counterLayer.draw(MapFont.MINECRAFT, hCenter, 28 + i*ENTRY_SPACING, MapColorPalette.COLOR_BLACK, "#${i+1} ${count.player.username} ")
+                        counterLayer.draw(MapFont.MINECRAFT, hCenter, 37 + i*ENTRY_SPACING, MapColorPalette.COLOR_BLACK, count.total.toString())
+                        if (i > 0) counterLayer.drawLine(hCenter-25, 24+i*ENTRY_SPACING, hCenter+25, 24+i*ENTRY_SPACING, MapColorPalette.getColor(150,150,150))
                     }
                     update()
                 }
             }
         }
     }
+
 }
