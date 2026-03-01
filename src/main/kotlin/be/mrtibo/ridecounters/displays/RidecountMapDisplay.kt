@@ -4,6 +4,8 @@ import be.mrtibo.ridecounters.Ridecounters
 import be.mrtibo.ridecounters.Ridecounters.Companion.INSTANCE
 import be.mrtibo.ridecounters.data.Database
 import be.mrtibo.ridecounters.data.records.RideRecord
+import be.mrtibo.ridecounters.displays.texture.McMetaDeserializer
+import be.mrtibo.ridecounters.displays.texture.StretchTexture
 import com.bergerkiller.bukkit.common.map.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -22,10 +24,13 @@ class RidecountMapDisplay : MapDisplay(), RidecountLeaderboard {
         setSessionMode(MapSessionMode.VIEWING)
         hCenter = width/2
         try {
-            val file = INSTANCE.dataPath.resolve("images").resolve(properties.get("background", String::class.java)).toFile()
-            val texture = MapTexture.fromImage(ImageIO.read(file))
-            val image = MapTexture.resize(texture, width, height)
-            bottomLayer.draw(image, 0, 0)
+            val backgroundFile = properties.get("background", String::class.java)
+            val imageFile = INSTANCE.dataPath.resolve("images").resolve(backgroundFile).toFile()
+            val metaFile = INSTANCE.dataPath.resolve("images").resolve("$backgroundFile.mcmeta").toFile()
+
+            val image = MapTexture.fromImage(ImageIO.read(imageFile))
+            val texture = if (metaFile.exists()) McMetaDeserializer.deserialize(metaFile) else StretchTexture()
+            texture.applyMap(image, bottomLayer)
         } catch (_: Exception) {
             bottomLayer.fill(MapColorPalette.COLOR_WHITE)
             bottomLayer.drawContour(
@@ -44,8 +49,6 @@ class RidecountMapDisplay : MapDisplay(), RidecountLeaderboard {
                 taskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(INSTANCE, ::updateLeaderboard, 0, 120*20)
             }
         }
-
-
     }
 
     override fun onDetached() {
