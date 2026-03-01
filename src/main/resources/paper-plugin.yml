@@ -1,5 +1,5 @@
 name: "TC-Ridecounters"
-version: "2.0-SNAPSHOT"
+version: "2.0"
 main: "be.mrtibo.ridecounters.Ridecounters"
 api-version: "1.21"
 authors:
