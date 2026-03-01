@@ -63,7 +63,7 @@ object RidecountCommands {
     @Permission("ridecounters.increment")
     suspend fun incrementCounter(
         source: Source,
-        @Argument(value = "player")
+        @Argument(value = "players")
         playerSelector: MultiplePlayerSelector,
         @Argument(value = "rideId", suggestions = "rideIds")
         rideId: String
