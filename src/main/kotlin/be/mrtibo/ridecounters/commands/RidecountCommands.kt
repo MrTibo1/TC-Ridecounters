@@ -9,6 +9,7 @@ import org.incendo.cloud.annotation.specifier.Range
 import org.incendo.cloud.annotations.Argument
 import org.incendo.cloud.annotations.Command
 import org.incendo.cloud.annotations.Permission
+import org.incendo.cloud.bukkit.data.MultiplePlayerSelector
 import org.incendo.cloud.bukkit.data.SinglePlayerSelector
 import org.incendo.cloud.paper.util.sender.Source
 
@@ -58,23 +59,25 @@ object RidecountCommands {
         }
     }
 
-    @Command("increment <player> <rideId>")
+    @Command("increment <players> <rideId>")
     @Permission("ridecounters.increment")
     suspend fun incrementCounter(
         source: Source,
         @Argument(value = "player")
-        playerSelector: SinglePlayerSelector,
+        playerSelector: MultiplePlayerSelector,
         @Argument(value = "rideId", suggestions = "rideIds")
         rideId: String
     ) {
-        val new = Database.incrementCounter(playerSelector.single().uniqueId.toString(), rideId)
         val sender = source.source()
+        val ride = Database.getRide(rideId) ?: return withContext(Ridecounters.mainThreadDispatcher) {
+            sender.sendMessage("<gray>Ride with this ID doesn't exist".mini)
+        }
+
+        val incrementedPlayers = playerSelector.values().mapNotNull {
+            Database.incrementCounter(it.uniqueId.toString(), rideId)
+        }.count()
         withContext(Ridecounters.mainThreadDispatcher) {
-            if (new == null) {
-                sender.sendMessage("<gray>Ride with this ID doesn't exist".mini)
-            } else {
-                sender.sendMessage("<green>Incremented ridecounter of ${new.player.username} for ${new.ride.name}<reset> <green>to ${new.total}".mini)
-            }
+            sender.sendMessage("<green>Incremented ridecounter of $incrementedPlayers players for ${ride.name}".mini)
         }
     }
 
