@@ -1,28 +1,16 @@
 package be.mrtibo.ridecounters.commands
 
 import be.mrtibo.ridecounters.Ridecounters
-import be.mrtibo.ridecounters.Ridecounters.Companion.commandManager
 import be.mrtibo.ridecounters.data.Database
 import be.mrtibo.ridecounters.utils.ComponentUtil.mini
 import kotlinx.coroutines.withContext
-import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.TextColor
-import org.bukkit.entity.Player
 import org.incendo.cloud.annotation.specifier.Greedy
 import org.incendo.cloud.annotation.specifier.Range
 import org.incendo.cloud.annotations.Argument
 import org.incendo.cloud.annotations.Command
 import org.incendo.cloud.annotations.Default
 import org.incendo.cloud.annotations.Permission
-import org.incendo.cloud.annotations.parser.Parser
-import org.incendo.cloud.context.CommandContext
-import org.incendo.cloud.context.CommandInput
-import org.incendo.cloud.paper.util.sender.PlayerSource
 import org.incendo.cloud.paper.util.sender.Source
-import org.incendo.cloud.parser.ArgumentParseResult
-import org.incendo.cloud.parser.standard.IntegerParser
-import org.incendo.cloud.parser.standard.StringParser
-import java.sql.SQLIntegrityConstraintViolationException
 
 @Command("ridecounter|rc")
 object RideCommands {
