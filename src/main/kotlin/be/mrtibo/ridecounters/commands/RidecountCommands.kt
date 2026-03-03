@@ -3,11 +3,13 @@ package be.mrtibo.ridecounters.commands
 import be.mrtibo.ridecounters.Ridecounters
 import be.mrtibo.ridecounters.data.Database
 import be.mrtibo.ridecounters.data.records.RidecountTotalRecord
+import be.mrtibo.ridecounters.message.Messages
 import be.mrtibo.ridecounters.utils.ComponentUtil.mini
 import kotlinx.coroutines.withContext
 import org.incendo.cloud.annotation.specifier.Range
 import org.incendo.cloud.annotations.Argument
 import org.incendo.cloud.annotations.Command
+import org.incendo.cloud.annotations.Flag
 import org.incendo.cloud.annotations.Permission
 import org.incendo.cloud.bukkit.data.MultiplePlayerSelector
 import org.incendo.cloud.bukkit.data.SinglePlayerSelector
@@ -66,7 +68,9 @@ object RidecountCommands {
         @Argument(value = "players")
         playerSelector: MultiplePlayerSelector,
         @Argument(value = "rideId", suggestions = "rideIds")
-        rideId: String
+        rideId: String,
+        @Flag("silent")
+        silent: Boolean = false
     ) {
         val sender = source.source()
         val ride = Database.getRide(rideId) ?: return withContext(Ridecounters.mainThreadDispatcher) {
@@ -74,7 +78,9 @@ object RidecountCommands {
         }
 
         val incrementedPlayers = playerSelector.values().mapNotNull {
-            Database.incrementCounter(it.uniqueId.toString(), rideId)
+            val record = Database.incrementCounter(it.uniqueId.toString(), rideId)
+            if (!silent) record?.let { r -> it.sendMessage(Messages.announceRidecountUpdate(r.ride.name, r.total)) }
+            record
         }.count()
         withContext(Ridecounters.mainThreadDispatcher) {
             sender.sendMessage("<green>Incremented ridecounter of $incrementedPlayers players for ${ride.name}".mini)

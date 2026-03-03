@@ -3,6 +3,7 @@ package be.mrtibo.ridecounters.traincarts
 import be.mrtibo.ridecounters.Ridecounters
 import be.mrtibo.ridecounters.Ridecounters.Companion.INSTANCE
 import be.mrtibo.ridecounters.data.Database
+import be.mrtibo.ridecounters.message.Messages
 import be.mrtibo.ridecounters.utils.ComponentUtil.mini
 import com.bergerkiller.bukkit.tc.controller.MinecartGroup
 import com.bergerkiller.bukkit.tc.controller.MinecartMember
@@ -50,10 +51,7 @@ class SignActionRidecount : SignAction() {
             val ride = Database.getRide(rideId) ?: return@launch
             val newCount = Database.incrementCounter(player.uniqueId.toString(), rideId) ?: return@launch
             withContext(Ridecounters.mainThreadDispatcher) {
-                val message = MiniMessage.miniMessage().deserialize(INSTANCE.config.getString("messages.ridecount_update")!!,
-                    Placeholder.component("ridecount", Component.text(newCount.total)),
-                    Placeholder.component("ride", ride.name.mini))
-                player.sendMessage(message)
+                player.sendMessage(Messages.announceRidecountUpdate(ride.name, newCount.total))
             }
         }
     }
