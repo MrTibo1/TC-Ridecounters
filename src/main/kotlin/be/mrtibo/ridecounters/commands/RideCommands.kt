@@ -54,6 +54,7 @@ object RideCommands {
     }
 
     @Command("list [page]")
+    @Permission("ridecounters.list")
     suspend fun listRides(
         source: Source,
         @Default("1") @Argument(value = "page") @Range(min = "1")
@@ -75,6 +76,7 @@ object RideCommands {
     }
 
     @Command("rename <rideId> <name>")
+    @Permission("ridecounters.rename")
     suspend fun changeName(
         source: Source,
         @Argument(value = "rideId", suggestions = "rideIds") rideId: String,
@@ -94,6 +96,7 @@ object RideCommands {
     }
 
     @Command("alternative <rideId> <name>")
+    @Command("ridecounters.setalternativename")
     suspend fun changeAlternative(
         source: Source,
         @Argument(value = "rideId", suggestions = "rideIds") rideId: String,
