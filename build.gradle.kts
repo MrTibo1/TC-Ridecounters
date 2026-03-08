@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "be.mrtibo"
-version = "2.0"
+version = "2.0.1"
 
 val javaVersion: JavaLanguageVersion = JavaLanguageVersion.of(21)
 
