@@ -19,7 +19,21 @@ rc
 <ride id>
 ```
 
-## Images
+## Commands
+| Command | Permission | Description |
+|---|---|---|
+| `/rc display <rideId> [backgroundImage]`| `ridecounters.display` | Create a ridecounter display map |
+| `/rc create <rideId> <rideName>`| `ridecounters.create` | Create a new ride |
+| `/rc delete <rideId>` | `ridecounters.delete` | Delete an existing ride |
+| `/rc total <player> <rideId>`| `ridecounters.total` | View a player's total ridecount |
+| `/rc set <player> <rideId> <value>` | `ridecounters.set` | Manually set a player's ridecount |
+| `/rc increment <players> <rideId> [--silent]`| `ridecounters.increment` | Increment ridecounts for players |
+| `/rc top <rideId> <limit>`| `ridecounters.top` | View the top ridecounts for a ride |
+| `/rc list [page]`| `ridecounters.list` | See a list of registered rides |
+| `/rc rename <rideId> <name>`| `ridecounters.rename` | Change the main name of a ride, which will display in chat |
+| `/rc alternative <rideId> <name>`| `ridecounters.setalternativename` | Set the alternative name, which will display on ridecount displays |
+
+## Gallery
 <img width="600" alt="image" src="https://github.com/user-attachments/assets/aba98bf4-d78f-4532-b084-a4cb2e449eeb" />
 
 ## Contributors:
