@@ -21,15 +21,16 @@ rc
 
 ## Permissions
 
-| Permission | Description |
-|---|---|
-| `ridecounters.display` | Create a ridecounter display map |
-| `ridecounters.create` | Create a new ride |
-| `ridecounters.delete` | Delete an existing ride |
-| `ridecounters.total` | View a player's total ridecount |
-| `ridecounters.set` | Manually set a player's ridecount |
-| `ridecounters.increment` | Increment ridecounts for players |
-| `ridecounters.top` | View the top ridecounts for a ride |
+
+| Permission | Description | Command / Usage |
+|---|---|---|
+| `ridecounters.display` | Create a ridecounter display map | `/rc display <rideId> [backgroundImage]` |
+| `ridecounters.create` | Create a new ride | `/rc create <rideId> <rideName>` |
+| `ridecounters.delete` | Delete an existing ride | `/rc delete <rideId>` |
+| `ridecounters.total` | View a player's total ridecount | `/rc total <player> <rideId>` |
+| `ridecounters.set` | Manually set a player's ridecount | `/rc set <player> <rideId> <value>` |
+| `ridecounters.increment` | Increment ridecounts for players | `/rc increment <players> <rideId> [--silent]` |
+| `ridecounters.top` | View the top ridecounts for a ride | `/rc top <rideId> <limit>` |
 
 ## Images
 <img width="600" alt="image" src="https://github.com/user-attachments/assets/aba98bf4-d78f-4532-b084-a4cb2e449eeb" />
