@@ -24,8 +24,8 @@ dependencies {
     compileOnly("com.bergerkiller.bukkit:TrainCarts:1.21.11-v1-SNAPSHOT")
     compileOnly("com.bergerkiller.bukkit:BKCommonLib:1.21.11-v1-SNAPSHOT")
 
-    implementation("org.incendo:cloud-paper:2.0.0+")
-    implementation("org.incendo:cloud-annotations:2.0.0+")
+    implementation("org.incendo:cloud-paper:2+")
+    implementation("org.incendo:cloud-annotations:2+")
     implementation("org.incendo", "cloud-minecraft-extras", "2.0.0-beta.10")
     implementation("org.incendo:cloud-kotlin-coroutines-annotations:2.0.0")
 //    implementation("org.incendo:cloud-kotlin-coroutines:2.0.0")

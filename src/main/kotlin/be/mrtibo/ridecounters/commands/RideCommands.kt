@@ -96,7 +96,7 @@ object RideCommands {
     }
 
     @Command("alternative <rideId> <name>")
-    @Command("ridecounters.setalternativename")
+    @Permission("ridecounters.setalternativename")
     suspend fun changeAlternative(
         source: Source,
         @Argument(value = "rideId", suggestions = "rideIds") rideId: String,
